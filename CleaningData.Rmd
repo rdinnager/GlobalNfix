@@ -1,10 +1,13 @@
 ---
 title: "Loading and cleaning data"
 output:
+  html_document:
+    highlight: pygments
   rmdformats::html_docco:
     fig_width: 6
     fig_height: 6
     highlight: pygments
+bibliography: "/home/din02g/Google Drive/References/GNFD.bib"
 ---
 
 
@@ -14,7 +17,7 @@ library(knitr)
 ## Global options
 options(max.print="75")
 opts_chunk$set(fig.path="out/",
-               echo=FALSE,
+               echo=TRUE,
 	       cache=TRUE,
                cache.path="cache/",
                prompt=FALSE,
@@ -25,3 +28,84 @@ opts_chunk$set(fig.path="out/",
 opts_knit$set(width=75)
 ```
 
+First, we need to download the @Werner2014 data set from Dryad if it is not already dowloaded, and then load it into R.
+
+```{r}
+if (!file.exists("data/Werner_NFix.csv")){
+  download.file("https://datadryad.org/bitstream/handle/10255/dryad.64120/Werner_NFix.csv",
+                "data/Werner_NFix.csv", "curl")
+}
+N_fix_data <- read.csv("data/Werner_NFix.csv", stringsAsFactors = FALSE)
+```
+
+It is possible to use R packages to download GBIF data from GBIF directly, but for large queries it is often more efficient to download a large dataset from the GBIF web portal, and analyze that in R. We have already downloaded all of the georeferenced records in the family Fabaceae. The file has more than 5 million records, and is about 3.8 GB in size. To load it into R, we will need the [`LaF`](http://cran.r-project.org/web/packages/LaF/index.html) package, which can access an ASCII file in R without loading the entire file into physical memory. 
+
+In order to use `LaF`, the datafile must be formatted correctly. Unforunately, the raw GBIF data files usually contain quotes with fields, which is not compatible with `LaF`. I have not figured out a cross-platform solution to this problem yet, but using linux we can use basic commands to remove all single and double quotes from the data file as follows (this may take a few minutes):
+
+```{r, engine='bash'}
+sed 's/\"//g' data/occurrence.txt > data/gbif_occ.txt
+```
+
+First we will read in the first line and figure out what our columns are.
+
+```{r}
+library("LaF")
+frow <- as.vector(read.table("data/gbif_occ.txt", sep = "\t", nrows = 1,
+                             stringsAsFactors = FALSE)[1, ])
+paste(frow, collapse = ", ")
+```
+
+That is a lot of columns! `LaF` requires that you specify the type of all the columns, but we only care about a few of them. We will make sure these columns have the correct type. for the rest we will just import as 'strings'. We are interested in the Species names, and the Latitudes, and the Longitudes. We will also use the GBIF ID column, in case we need to come back later an get additional data.
+
+```{r}
+col_type <- vector(mode= "character", length = length(frow))
+names(col_type) <- as.character(frow)
+col_need <- c("gbifID", "decimalLatitude", "decimalLongitude", "genus", "scientificName", "species", "taxonKey", "genusKey", "speciesKey")
+col_type[col_need] <- c("integer", "double", "double", "string", "string", "string", "integer", "integer", "integer")
+col_type[col_type == ""] <- "string"
+gbif_dat <- laf_open_csv("data/gbif_occ.txt", column_types = col_type, column_names = as.character(frow), sep = "\t", skip = 1)
+```
+
+Now that the data is loaded using `LaF`, we can extract just the columns we want, which should be able to fit into memory (Only one way to find out for sure!).
+
+```{r}
+gbif_dat_reduced <- gbif_dat[ , col_need]
+## How big is it?
+print(object.size(gbif_dat_reduced), units = "Mb")
+```
+
+As a basic sanity check, let's load up some `dplyr` and `ggplot2` and see whether the data looks like it is actually data on a world map.
+
+```{r}
+library(dplyr)
+library(ggplot2)
+## convert to a dplyr table
+gbif_dat_reduced <- gbif_dat_reduced %>% tbl_df
+gbif_dat_reduced
+```
+
+Let's plot it and see if it looks vaguely world shaped! (this might take awhile; we are plotting 5 million points!)
+
+```{r}
+p <- ggplot(gbif_dat_reduced, aes(decimalLongitude, decimalLatitude)) + 
+  geom_point(alpha = 0.1)
+p
+```
+
+But, we don't actually need all of these GBIF records. AT the most we only need the records for species that are also in the @Werner2014 nitrogen fixation data. First, let's see how many of the @Werner2014 species have corresponding GBIF records.
+
+```{r}
+legumes_in_GBIF <- N_fix_data$Species[N_fix_data$Species %in% gbif_dat_reduced$species]
+length(legumes_in_GBIF)
+```
+
+So there are `r length(legumes_in_GBIF)` legumes that are in both the @Werner2014 nitrogen fixation dataset and the GBIF spatial dataset. That is `r (length(legumes_in_GBIF)/nrow(N_fix_data))*100`%. How many of those were analysed in @Werner2014 (which means they have a phylogeny and have been error checked)?
+
+```{r}
+fulldat_legumes <- sum(N_fix_data$Analysed_Werner_etal.[N_fix_data$Species %in% gbif_dat_reduced$species] == "Analysed")
+fulldat_legumes
+```
+
+So that is only `r (fulldat_legumes/nrow(N_fix_data)*100)`%. This is still a good number. But it suggest we may want to use the whole dataset, but conduct sensitivity analyses to see how are results are changed by simulating error in different ways. This might be a good place to use a "virtual ecologist" [@Zurell2010] - style analysis, actually!
+
+#References
