@@ -43,7 +43,7 @@ It is possible to use R packages to download GBIF data from GBIF directly, but f
 In order to use `LaF`, the datafile must be formatted correctly. Unforunately, the raw GBIF data files usually contain quotes with fields, which is not compatible with `LaF`. I have not figured out a cross-platform solution to this problem yet, but using linux we can use basic commands to remove all single and double quotes from the data file as follows (this may take a few minutes):
 
 ```{r, engine='bash'}
-sed 's/\"//g' data/occurrence.txt > data/gbif_occ.txt
+if [ ! -f ./data/gbif_occ.txt ]; then sed 's/\"//g' data/occurrence.txt > data/gbif_occ.txt; fi
 ```
 
 First we will read in the first line and figure out what our columns are.
@@ -107,5 +107,19 @@ fulldat_legumes
 ```
 
 So that is only `r (fulldat_legumes/nrow(N_fix_data)*100)`%. This is still a good number. But it suggest we may want to use the whole dataset, but conduct sensitivity analyses to see how are results are changed by simulating error in different ways. This might be a good place to use a "virtual ecologist" [@Zurell2010] - style analysis, actually!
+
+Let's map out all the occurrences of species that were analysed in @Werner2014.
+
+```{r mappy}
+library(maps)
+reduced_data <- gbif_dat_reduced %>% filter(species %in% N_fix_data$Species[N_fix_data$Analysed_Werner_etal. == "Analysed"])
+all_states <- map_data("world")
+#plot all states with ggplot
+p <- ggplot()
+p <- p + geom_polygon(data=all_states, aes(x=long, y=lat, group = group),colour="white", fill="grey10") + geom_point(data = reduced_data, aes(decimalLongitude, decimalLatitude), alpha = 0.02, colour = "red")
+p
+```
+
+It turns out we still have about 3.75 million occurrence records for the remaining species and good latitudinal coverage. It would appear that those legumes that occur commonly in genbank records (and so appear in the phylogeny used by @Werner2014) also have good GBIF records. I suppose this makes sense.
 
 #References
