@@ -122,4 +122,6 @@ p
 
 It turns out we still have about 3.75 million occurrence records for the remaining species and good latitudinal coverage. It would appear that those legumes that occur commonly in genbank records (and so appear in the phylogeny used by @Werner2014) also have good GBIF records. I suppose this makes sense.
 
+The next step will be to look for and clean-up any obvious errors in the GBIF data. For example, there are a number of records at lat-long of (0, 0). This usually mean the data is missing and the recorders put zeroes instead of missing data for the coordinates. We will get rid of these. Also any records which are not on any land-masses (we are not interested in those pesky marine legumes in this study). We should also double-check that there are not any errors in the species names (there shouldn't be).
+
 #References
