@@ -1,0 +1,19 @@
+---
+title: "Global Nitrogen Fixation Distribution"
+output: html_document
+bibliography: "/home/din02g/Google Drive/References/GNFD.bib"
+---
+
+This is the project page for Russell Dinnage, Anna Simonsen et al. project to map the distribution of nitrogen fixation in legumes across the globe.
+
+So, far the project contains the following pages:
+
+[Loading and Cleaning Data](http://rdinnager.github.io/GlobalNfix/CleaningData)
+
+Getting and cleaning legume distribution data from GBIF and linking it with nitrogen fixation data of @Werner2014.
+
+[ILDIS Webscraper](http://rdinnager.github.io/GlobalNfix/ILDIS_scraper)
+
+A start on a basic web scraper for retrieving data on legume distributions from the International Legume Database and Information Service ([ILDIS](http://www.ildis.org))
+
+##References

@@ -1,5 +1,6 @@
 ---
 title: "Loading and cleaning data"
+author: "Russell Dinnage and Anna Simonsen"
 output:
   html_document:
     highlight: pygments
@@ -9,7 +10,6 @@ output:
     highlight: pygments
 bibliography: "/home/din02g/Google Drive/References/GNFD.bib"
 ---
-
 
 ```{r knitr_init, echo=FALSE, results="asis", cache=FALSE}
 library(knitr)

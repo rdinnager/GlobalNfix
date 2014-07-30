@@ -1,0 +1,75 @@
+---
+title: "ILDIS Webscraper"
+author: "Russell Dinnage and Anna Simonsen"
+date: "30/07/2014"
+output: 
+  html_document:
+    highlight: pygments
+bibliography: "/home/din02g/Google Drive/References/GNFD.bib"
+---
+
+```{r knitr_init, echo=FALSE, results="asis", cache=FALSE}
+library(knitr)
+
+## Global options
+options(max.print="75")
+opts_chunk$set(fig.path="out/",
+               echo=TRUE,
+         cache=TRUE,
+               cache.path="cache/",
+               prompt=FALSE,
+               tidy=TRUE,
+               comment=NA,
+               message=FALSE,
+               warning=FALSE)
+opts_knit$set(width=75)
+```
+
+Here we are going to try and build a simple webscraper to grab geographic data about legumes from the International Legume Database and Information Service ([ILDIS](http://www.ildis.org)). First let's see if we can access an html file using the species name.
+
+```{r build_url}
+species <- c("Medicago", "lupulina")
+spec_url <- sprintf("http://www.ildis.org/LegumeWeb?version~10.01&LegumeWeb&genus~%s&species~%s",
+                    species[1], species[2])
+html_file <- paste0("/home/din02g/ILDIS_html/", paste(species, collapse = "_"), ".html")
+download.file(spec_url, html_file, method = "curl")
+spec_html <- readLines(html_file)
+```
+
+Next we need to get the data we need. Luckily, it is contained on a single line of the `.html`, after the line with "Geographical records". Once we get this line, we just need to strip out all html tags, and the footnote numbers, before we can process the geographical area names.
+
+```{r clean_html}
+geo_recs <- grep("Geographical records", spec_html, fixed = TRUE) + 1
+clean_recs <- gsub("<sup>.*?</sup>", "", spec_html[geo_recs]) ## remove footnotes
+clean_recs <- gsub("<p>", "\n", clean_recs, fixed = TRUE) ## remove paragraph breaks
+clean_recs <- gsub("*", "", clean_recs, fixed = TRUE) ## remove asterisks
+clean_recs <- gsub("<.*?>", "", clean_recs) ## remove html tags
+clean_recs <- gsub("&.*?;", "", clean_recs) ## remove special html characters
+clean_recs <- gsub("(N = native, I = introduced, U = uncertain status)\n", "", clean_recs, fixed= TRUE)
+clean_recs
+```
+
+Let's just check if that works on another legume, chosen haphazardly.
+
+```{r try_again}
+species2 <- c("Acacia", "acuminata")
+spec_url <- sprintf("http://www.ildis.org/LegumeWeb?version~10.01&LegumeWeb&genus~%s&species~%s",
+                    species2[1], species2[2])
+html_file <- paste0("/home/din02g/ILDIS_html/", paste(species2, collapse = "_"), ".html")
+download.file(spec_url, html_file, method = "curl")
+spec_html <- readLines(html_file)
+geo_recs <- grep("Geographical records", spec_html, fixed = TRUE) + 1
+clean_recs <- gsub("<sup>.*?</sup>", "", spec_html[geo_recs])
+clean_recs <- gsub("<p>", "\n", clean_recs, fixed = TRUE)
+clean_recs <- gsub("*", "", clean_recs, fixed = TRUE)
+clean_recs <- gsub("<.*?>", "", clean_recs) ## remove html tags
+clean_recs <- gsub("&.*?;", "", clean_recs) ## remove special html characters
+clean_recs <- gsub("(N = native, I = introduced, U = uncertain status)\n", "", clean_recs, fixed= TRUE)
+clean_recs
+```
+
+Looks good. Next we will roll this up into a function and start pinging ILDIS for all of the species in the @Werner2014 nitrogen fixation dataset. The only issue might be if a name ever comes up with multiple entries in ILDIS, in which case this script will not work properly. We think we will identify those cases after running through once, and deal with it then if it is an issue for any species. Should be a pretty simple fix of grabbing the "accepted" name field and then following the linked URL to the species page.
+
+Then we need to put these region names into a data structure and link them up to the geographic regional borders in the Taxonomic Database Working Group scheme ([TDWG](http://www.kew.org/science-research-data/kew-in-depth/gis/resources-and-publications/data/tdwg/index.htm)). Will work on that once we have all of the data scraped.
+
+##References
