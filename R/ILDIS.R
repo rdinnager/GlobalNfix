@@ -10,7 +10,7 @@ download_ILDIS <- function(species, hdir = "ILDIS_html"){
   html_file <- paste0(hdir, "/temp/", paste(spec, collapse = "_"), ".html")
   download.file(spec_url, html_file, method = "curl")
   search_html <- readLines(html_file)
-  accept_name_line <- search_html[grep("accepted</td>", spec_html)]
+  accept_name_line <- search_html[grep("accepted</td>", search_html)]
   accept_name_url <- regmatches(accept_name_line, regexpr("<a href=.*?>", accept_name_line))
   accept_name_url <- sub("<a href=\"", "", accept_name_url)
   accept_name_url <- sub("\">", "", accept_name_url)
