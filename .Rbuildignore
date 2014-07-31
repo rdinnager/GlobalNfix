@@ -1,0 +1,3 @@
+bigdata
+^.*\.Rproj$
+^\.Rproj\.user$
