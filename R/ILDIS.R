@@ -7,8 +7,15 @@ download_ILDIS <- function(species, hdir = "ILDIS_html"){
   spec <- strsplit(species, " ")[[1]]
   spec_url <- sprintf("http://www.ildis.org/LegumeWeb?version~10.01&LegumeWeb&genus~%s&species~%s",
                       spec[1], spec[2])
-  html_file <- paste0(hdir, paste(spec, collapse = "_"), ".html")
-  download.file(spec_url, html_file, method = "curl")  
+  html_file <- paste0(hdir, "/temp/", paste(species, collapse = "_"), ".html")
+  download.file(spec_url, html_file, method = "curl")
+  search_html <- readLines(html_file)
+  accept_name_line <- search_html[grep("accepted</td>", spec_html)]
+  accept_name_url <- regmatches(accept_name_line, regexpr("<a href=.*?>", accept_name_line))
+  accept_name_url <- sub("<a href=\"", "", accept_name_url)
+  accept_name_url <- sub("\">", "", accept_name_url)
+  html_file <- paste0(hdir, paste(species, collapse = "_"), ".html")
+  download.file(accept_name_url, html_file, method = "curl")
 }
 
 #' Extract geographical records data from ILDIS species page html
