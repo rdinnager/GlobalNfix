@@ -28,7 +28,7 @@ opts_chunk$set(fig.path="out/",
 opts_knit$set(width=75)
 ```
 
-First, we need to download the @Werner2014 data set from Dryad if it is not already dowloaded, and then load it into R.
+First, we need to download the @Werner2014 data set from Dryad if it is not already dowloaded, and then load it into R. We will also save a list of the species names from this dataset into the `data` directory of this package, so we can easily access it in other analyses.
 
 ```{r}
 if (!file.exists("data/Werner_NFix.csv")){
@@ -36,6 +36,8 @@ if (!file.exists("data/Werner_NFix.csv")){
                 "data/Werner_NFix.csv", "curl")
 }
 N_fix_data <- read.csv("data/Werner_NFix.csv", stringsAsFactors = FALSE)
+legume_species <- N_fix_data$Species
+save(legume_species, file = "data/legume_species.rda")
 ```
 
 It is possible to use R packages to download GBIF data from GBIF directly, but for large queries it is often more efficient to download a large dataset from the GBIF web portal, and analyze that in R. We have already downloaded all of the georeferenced records in the family Fabaceae. The file has more than 5 million records, and is about 3.8 GB in size. To load it into R, we will need the [`LaF`](http://cran.r-project.org/web/packages/LaF/index.html) package, which can access an ASCII file in R without loading the entire file into physical memory. 
@@ -122,6 +124,6 @@ p
 
 It turns out we still have about 3.75 million occurrence records for the remaining species and good latitudinal coverage. It would appear that those legumes that occur commonly in genbank records (and so appear in the phylogeny used by @Werner2014) also have good GBIF records. I suppose this makes sense.
 
-The next step will be to look for and clean-up any obvious errors in the GBIF data. For example, there are a number of records at lat-long of (0, 0). This usually mean the data is missing and the recorders put zeroes instead of missing data for the coordinates. We will get rid of these. Also any records which are not on any land-masses (we are not interested in those pesky marine legumes in this study). We should also double-check that there are not any errors in the species names (there shouldn't be).
+The next step will be to look for and clean-up any obvious errors in the GBIF data. For example, there are a number of records at lat-long of exactly 0. This usually mean the data is missing and the recorders put zeroes instead of missing data for the coordinates. We will get rid of these. Also any records which are not on any land-masses (we are not interested in those pesky marine legumes in this study). We should also double-check that there are not any errors in the species names (there shouldn't be).
 
 #References
