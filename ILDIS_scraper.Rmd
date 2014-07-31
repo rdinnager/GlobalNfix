@@ -95,7 +95,7 @@ library(GlobalNfix)
 data(legume_species)
 for (i in legume_species) {
   download_ILDIS(species = i, hdir = "/home/din02g/ILDIS_html/")
-  Sys.sleep(4)
+  Sys.sleep(1)
 }
 ```
 
