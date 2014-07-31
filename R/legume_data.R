@@ -1,0 +1,7 @@
+#' @name legume_species
+#' @title List of Legume Species in Werner et al. Dataset
+#' @description This is a vector of the species found in the nitrogen fixation data of Werner et al (2014). 
+#' Mostly used to get data from other databases.
+#' @docType data
+#' @usage data(legume_species)
+NULL
