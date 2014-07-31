@@ -35,8 +35,9 @@ if (!file.exists("data/Werner_NFix.csv")){
   download.file("https://datadryad.org/bitstream/handle/10255/dryad.64120/Werner_NFix.csv",
                 "data/Werner_NFix.csv", "curl")
 }
-N_fix_data <- read.csv("data/Werner_NFix.csv", stringsAsFactors = FALSE)
-legume_species <- N_fix_data$Species
+N_fix_data <- read.csv("inst/extdata/Werner_NFix.csv", stringsAsFactors = FALSE)
+legume_species <- N_fix_data$Species[N_fix_data$Family == "Fabaceae"]
+N_fix_data <- N_fix_data[N_fix_data$Family == "Fabaceae", ] ## reduce to just legumes
 save(legume_species, file = "data/legume_species.rda")
 ```
 

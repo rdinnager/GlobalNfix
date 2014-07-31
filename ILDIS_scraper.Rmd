@@ -72,4 +72,15 @@ Looks good. Next we will roll this up into a function and start pinging ILDIS fo
 
 Then we need to put these region names into a data structure and link them up to the geographic regional borders in the Taxonomic Database Working Group scheme ([TDWG](http://www.kew.org/science-research-data/kew-in-depth/gis/resources-and-publications/data/tdwg/index.htm)). Will work on that once we have all of the data scraped.
 
+Okay, we have made some functions to scrape from ILDIS. To access them we need to load the project package. Then we will go through the @Werner2014 species and download html files for each.
+
+```{r ILDIS_html_down}
+library(GlobalNfix)
+data(legume_species)
+for (i in legume_species[4:12]) {
+  download_ILDIS(species = i, hdir = "/home/din02g/ILDIS_html/")
+  Sys.sleep(5)
+}
+```
+
 ##References
