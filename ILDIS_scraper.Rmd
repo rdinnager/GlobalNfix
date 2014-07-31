@@ -90,12 +90,12 @@ Then we need to put these region names into a data structure and link them up to
 
 Okay, we have made some functions to scrape from ILDIS. To access them we need to load the project package. Then we will go through the @Werner2014 species and download html files for each.
 
-```{r ILDIS_html_down}
+```{r ILDIS_html_down, eval=FALSE}
 library(GlobalNfix)
 data(legume_species)
-for (i in legume_species[1:12]) {
+for (i in legume_species) {
   download_ILDIS(species = i, hdir = "/home/din02g/ILDIS_html/")
-  Sys.sleep(5)
+  Sys.sleep(4)
 }
 ```
 
