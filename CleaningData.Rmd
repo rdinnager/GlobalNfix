@@ -31,9 +31,9 @@ opts_knit$set(width=75)
 First, we need to download the @Werner2014 data set from Dryad if it is not already dowloaded, and then load it into R. We will also save a list of the species names from this dataset into the `data` directory of this package, so we can easily access it in other analyses.
 
 ```{r}
-if (!file.exists("data/Werner_NFix.csv")){
+if (!file.exists("inst/extdata/Werner_NFix.csv")){
   download.file("https://datadryad.org/bitstream/handle/10255/dryad.64120/Werner_NFix.csv",
-                "data/Werner_NFix.csv", "curl")
+                "inst/extdata/Werner_NFix.csv", "curl")
 }
 N_fix_data <- read.csv("inst/extdata/Werner_NFix.csv", stringsAsFactors = FALSE)
 legume_species <- N_fix_data$Species[N_fix_data$Family == "Fabaceae"]
@@ -54,7 +54,7 @@ First we will read in the first line and figure out what our columns are.
 
 ```{r}
 library("LaF")
-frow <- as.vector(read.table("data/gbif_occ.txt", sep = "\t", nrows = 1,
+frow <- as.vector(read.table("bigdata/gbif_occ.txt", sep = "\t", nrows = 1,
                              stringsAsFactors = FALSE)[1, ])
 paste(frow, collapse = ", ")
 ```
@@ -67,7 +67,7 @@ names(col_type) <- as.character(frow)
 col_need <- c("gbifID", "decimalLatitude", "decimalLongitude", "genus", "scientificName", "species", "taxonKey", "genusKey", "speciesKey")
 col_type[col_need] <- c("integer", "double", "double", "string", "string", "string", "integer", "integer", "integer")
 col_type[col_type == ""] <- "string"
-gbif_dat <- laf_open_csv("data/gbif_occ.txt", column_types = col_type, column_names = as.character(frow), sep = "\t", skip = 1)
+gbif_dat <- laf_open_csv("bigdata/gbif_occ.txt", column_types = col_type, column_names = as.character(frow), sep = "\t", skip = 1)
 ```
 
 Now that the data is loaded using `LaF`, we can extract just the columns we want, which should be able to fit into memory (Only one way to find out for sure!).
@@ -110,7 +110,7 @@ fulldat_legumes <- sum(N_fix_data$Analysed_Werner_etal.[N_fix_data$Species %in% 
 fulldat_legumes
 ```
 
-So that is only `r (fulldat_legumes/nrow(N_fix_data)*100)`%. This is still a good number. But it suggest we may want to use the whole dataset, but conduct sensitivity analyses to see how are results are changed by simulating error in different ways. This might be a good place to use a "virtual ecologist" [@Zurell2010] - style analysis, actually!
+So that is only `r (fulldat_legumes/nrow(N_fix_data)*100)`%. This is still a good number. But it suggests we may want to use the whole dataset, but conduct sensitivity analyses to see how are results are changed by simulating error in different ways. This might be a good place to use a "virtual ecologist" [@Zurell2010] - style analysis, actually!
 
 Let's map out all the occurrences of species that were analysed in @Werner2014.
 
@@ -127,5 +127,28 @@ p
 It turns out we still have about 3.75 million occurrence records for the remaining species and good latitudinal coverage. It would appear that those legumes that occur commonly in genbank records (and so appear in the phylogeny used by @Werner2014) also have good GBIF records. I suppose this makes sense.
 
 The next step will be to look for and clean-up any obvious errors in the GBIF data. For example, there are a number of records at lat-long of exactly 0. This usually mean the data is missing and the recorders put zeroes instead of missing data for the coordinates. We will get rid of these. Also any records which are not on any land-masses (we are not interested in those pesky marine legumes in this study). We should also double-check that there are not any errors in the species names (there shouldn't be).
+
+For now, we will just remove the coordinates with exactly zero in the Latitude or Longitude, and remove the oceanic occurrences after we aggregate the data (because most of the points in the ocean will be just off-shore, suggesting they are just due to small errors. Then we will merge the GBIF data with the nitrogen fixation data and save it to our data directory for later use.
+
+```{rm_zeroes}
+library(GlobalNfix)
+data(N_fix_data) ## load data which is now part of GlobalNfix package
+gbif_legumes <- gbif_dat_reduced %>%
+  filter(gbif_dat_reduced$species %in% N_fix_data$Species) %>%
+  filter(decimalLatitude != 0 & decimalLongitude != 0) %>%
+  select(gbifID, decimalLatitude, decimalLongitude, genus, scientificName, 
+         Species = species, taxonKey, genusKey, speciesKey)
+full_legume_data <- left_join(gbif_legumes, N_fix_data)
+full_legume_data %>% select(decimalLatitude, decimalLongitude, Species, Data_fixing)
+save(full_legume_data, file = "data/full_legume_data.rda")
+```
+
+Map of full data (including legume species not analysed in @Werner2014):
+
+```{r map_full_data}
+p <- ggplot()
+p <- p + geom_polygon(data=all_states, aes(x=long, y=lat, group = group),colour="white", fill="grey10") + geom_point(data = full_legume_data, aes(decimalLongitude, decimalLatitude), alpha = 0.1, colour = "red", size = 0.5)
+p
+```
 
 #References
