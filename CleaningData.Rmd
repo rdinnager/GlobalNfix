@@ -130,7 +130,7 @@ The next step will be to look for and clean-up any obvious errors in the GBIF da
 
 For now, we will just remove the coordinates with exactly zero in the Latitude or Longitude, and remove the oceanic occurrences after we aggregate the data (because most of the points in the ocean will be just off-shore, suggesting they are just due to small errors. Then we will merge the GBIF data with the nitrogen fixation data and save it to our data directory for later use.
 
-```{rm_zeroes}
+```{r rm_zeroes}
 library(GlobalNfix)
 data(N_fix_data) ## load data which is now part of GlobalNfix package
 gbif_legumes <- gbif_dat_reduced %>%
