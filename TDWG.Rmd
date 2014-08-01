@@ -1,0 +1,35 @@
+---
+title: "Working with TDWG areas"
+author: "Russell Dinnage"
+date: "01/08/2014"
+output: html_document
+---
+
+```{r knitr_init, echo=FALSE, results="asis", cache=FALSE}
+library(knitr)
+
+## Global options
+options(max.print="75")
+opts_chunk$set(fig.path="out/",
+               echo=TRUE,
+         cache=TRUE,
+               cache.path="cache/",
+               prompt=FALSE,
+               tidy=TRUE,
+               comment=NA,
+               message=FALSE,
+               warning=FALSE)
+opts_knit$set(width=75)
+```
+
+This file is to document the process of working with Taxonomic Databases Working Group ([TWDG](http://www.kew.org/science-research-data/kew-in-depth/gis/resources-and-publications/data/tdwg/index.htm)) area, and see if we can cross-reference them with our legume distribution information from [ILDIS](http://www.ildis.org/).
+
+First let us load the shape files downloaded from http://www.kew.org/science-research-data/kew-in-depth/gis/resources-and-publications/data/tdwg/index.htm on July 30th, 2014.
+
+```{r load_shapes}
+library(rgdal)
+library(sp)
+tdwg <- readOGR(dsn = "inst/extdata/TDWG_4", layer = "level4")
+class(tdwg)
+plot(tdwg)
+```

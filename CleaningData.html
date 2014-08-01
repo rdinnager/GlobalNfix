@@ -74,9 +74,11 @@ code > span.er { color: #ff0000; font-weight: bold; }
     <span class="kw">download.file</span>(<span class="st">&quot;https://datadryad.org/bitstream/handle/10255/dryad.64120/Werner_NFix.csv&quot;</span>, 
         <span class="st">&quot;data/Werner_NFix.csv&quot;</span>, <span class="st">&quot;curl&quot;</span>)
 }
-N_fix_data &lt;-<span class="st"> </span><span class="kw">read.csv</span>(<span class="st">&quot;data/Werner_NFix.csv&quot;</span>, <span class="dt">stringsAsFactors =</span> <span class="ot">FALSE</span>)
-legume_species &lt;-<span class="st"> </span>N_fix_data$Species
-<span class="kw">save</span>(legume_species, <span class="dt">file =</span> <span class="st">&quot;data/legume_species.rda&quot;</span>)</code></pre>
+N_fix_data &lt;-<span class="st"> </span><span class="kw">read.csv</span>(<span class="st">&quot;inst/extdata/Werner_NFix.csv&quot;</span>, <span class="dt">stringsAsFactors =</span> <span class="ot">FALSE</span>)
+legume_species &lt;-<span class="st"> </span>N_fix_data$Species[N_fix_data$Family ==<span class="st"> &quot;Fabaceae&quot;</span>]
+N_fix_data &lt;-<span class="st"> </span>N_fix_data[N_fix_data$Family ==<span class="st"> &quot;Fabaceae&quot;</span>, ]  ## reduce to just legumes
+<span class="kw">save</span>(legume_species, <span class="dt">file =</span> <span class="st">&quot;data/legume_species.rda&quot;</span>)
+<span class="kw">write.table</span>(N_fix_data, <span class="dt">file =</span> <span class="st">&quot;data/N_fix_data.csv&quot;</span>, <span class="dt">row.names =</span> <span class="ot">FALSE</span>, <span class="dt">sep =</span> <span class="st">&quot;;&quot;</span>)</code></pre>
 <p>It is possible to use R packages to download GBIF data from GBIF directly, but for large queries it is often more efficient to download a large dataset from the GBIF web portal, and analyze that in R. We have already downloaded all of the georeferenced records in the family Fabaceae. The file has more than 5 million records, and is about 3.8 GB in size. To load it into R, we will need the <a href="http://cran.r-project.org/web/packages/LaF/index.html"><code>LaF</code></a> package, which can access an ASCII file in R without loading the entire file into physical memory.</p>
 <p>In order to use <code>LaF</code>, the datafile must be formatted correctly. Unforunately, the raw GBIF data files usually contain quotes with fields, which is not compatible with <code>LaF</code>. I have not figured out a cross-platform solution to this problem yet, but using linux we can use basic commands to remove all single and double quotes from the data file as follows (this may take a few minutes):</p>
 <pre class="sourceCode bash"><code class="sourceCode bash"><span class="kw">if [</span> <span class="ot">!</span> <span class="ot">-f</span> ./data/gbif_occ.txt<span class="kw"> ]</span>; <span class="kw">then</span> <span class="kw">sed</span> <span class="st">'s/\&quot;//g'</span> data/occurrence.txt <span class="kw">&gt;</span> data/gbif_occ.txt<span class="kw">;</span> <span class="kw">fi</span></code></pre>
@@ -131,12 +133,12 @@ p</code></pre>
 <pre class="sourceCode r"><code class="sourceCode r">legumes_in_GBIF &lt;-<span class="st"> </span>N_fix_data$Species[N_fix_data$Species %in%<span class="st"> </span>gbif_dat_reduced$species]
 <span class="kw">length</span>(legumes_in_GBIF)</code></pre>
 <pre><code>[1] 4011</code></pre>
-<p>So there are 4011 legumes that are in both the <span class="citation">Werner et al. (2014)</span> nitrogen fixation dataset and the GBIF spatial dataset. That is 43.8121%. How many of those were analysed in <span class="citation">Werner et al. (2014)</span> (which means they have a phylogeny and have been error checked)?</p>
+<p>So there are 4011 legumes that are in both the <span class="citation">Werner et al. (2014)</span> nitrogen fixation dataset and the GBIF spatial dataset. That is 73.9082%. How many of those were analysed in <span class="citation">Werner et al. (2014)</span> (which means they have a phylogeny and have been error checked)?</p>
 <pre class="sourceCode r"><code class="sourceCode r">fulldat_legumes &lt;-<span class="st"> </span><span class="kw">sum</span>(N_fix_data$Analysed_Werner_etal.[N_fix_data$Species %in%<span class="st"> </span>
 <span class="st">    </span>gbif_dat_reduced$species] ==<span class="st"> &quot;Analysed&quot;</span>)
 fulldat_legumes</code></pre>
 <pre><code>[1] 1303</code></pre>
-<p>So that is only 14.2327%. This is still a good number. But it suggest we may want to use the whole dataset, but conduct sensitivity analyses to see how are results are changed by simulating error in different ways. This might be a good place to use a “virtual ecologist” <span class="citation">(Zurell et al. 2010)</span> - style analysis, actually!</p>
+<p>So that is only 24.0096%. This is still a good number. But it suggest we may want to use the whole dataset, but conduct sensitivity analyses to see how are results are changed by simulating error in different ways. This might be a good place to use a “virtual ecologist” <span class="citation">(Zurell et al. 2010)</span> - style analysis, actually!</p>
 <p>Let’s map out all the occurrences of species that were analysed in <span class="citation">Werner et al. (2014)</span>.</p>
 <pre class="sourceCode r"><code class="sourceCode r"><span class="kw">library</span>(maps)
 reduced_data &lt;-<span class="st"> </span>gbif_dat_reduced %&gt;%<span class="st"> </span><span class="kw">filter</span>(species %in%<span class="st"> </span>N_fix_data$Species[N_fix_data$Analysed_Werner_etal. ==<span class="st"> </span>

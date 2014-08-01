@@ -39,6 +39,7 @@ N_fix_data <- read.csv("inst/extdata/Werner_NFix.csv", stringsAsFactors = FALSE)
 legume_species <- N_fix_data$Species[N_fix_data$Family == "Fabaceae"]
 N_fix_data <- N_fix_data[N_fix_data$Family == "Fabaceae", ] ## reduce to just legumes
 save(legume_species, file = "data/legume_species.rda")
+write.table(N_fix_data, file = "data/N_fix_data.csv", row.names = FALSE, sep = ";")
 ```
 
 It is possible to use R packages to download GBIF data from GBIF directly, but for large queries it is often more efficient to download a large dataset from the GBIF web portal, and analyze that in R. We have already downloaded all of the georeferenced records in the family Fabaceae. The file has more than 5 million records, and is about 3.8 GB in size. To load it into R, we will need the [`LaF`](http://cran.r-project.org/web/packages/LaF/index.html) package, which can access an ASCII file in R without loading the entire file into physical memory. 
