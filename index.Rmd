@@ -16,4 +16,8 @@ Getting and cleaning legume distribution data from GBIF and linking it with nitr
 
 A start on a basic web scraper for retrieving data on legume distributions from the International Legume Database and Information Service ([ILDIS](http://www.ildis.org))
 
+[Working with TDWG areas](http://rdinnager.github.io/GlobalNfix/TDWG)
+
+Loading up Taxonomic Databases Working Group shape files. We hope to link these up with ILDIS legume distribution data to map as many legume ranges as possible.
+
 ##References
