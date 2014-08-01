@@ -64,9 +64,9 @@ if (window.hljs && document.readyState && document.readyState === "complete") {
 <p>First let us load the shape files downloaded from <a href="http://www.kew.org/science-research-data/kew-in-depth/gis/resources-and-publications/data/tdwg/index.htm">http://www.kew.org/science-research-data/kew-in-depth/gis/resources-and-publications/data/tdwg/index.htm</a> on July 30th, 2014.</p>
 <pre class="r"><code>library(rgdal)
 library(sp)
-tdwg &lt;- readOGR(dsn = &quot;inst/extdata/TDWG_4&quot;, layer = &quot;level4&quot;)</code></pre>
+tdwg &lt;- readOGR(dsn = &quot;inst/extdata/TDWG/TDWG_4&quot;, layer = &quot;level4&quot;)</code></pre>
 <pre><code>OGR data source with driver: ESRI Shapefile 
-Source: &quot;inst/extdata/TDWG_4&quot;, layer: &quot;level4&quot;
+Source: &quot;inst/extdata/TDWG/TDWG_4&quot;, layer: &quot;level4&quot;
 with 610 features and 7 fields
 Feature type: wkbPolygon with 2 dimensions</code></pre>
 <pre class="r"><code>class(tdwg)</code></pre>
