@@ -20,4 +20,8 @@ A start on a basic web scraper for retrieving data on legume distributions from 
 
 Loading up Taxonomic Databases Working Group shape files. We hope to link these up with ILDIS legume distribution data to map as many legume ranges as possible.
 
+[Preliminary Latitude Analysis](http://rdinnager.github.io/GlobalNfix/Prelim_Analysis)
+
+Preliminary analysis of latitudinal patterns in nitrogen fixation. 
+
 ##References
