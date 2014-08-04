@@ -41,15 +41,24 @@ legume_dat <- full_legume_data %>%
 legume_dat
 ```
 
-As a first basic analysis, we will run a logistic regression with nitrogen fixation as the response variable, and median latitude as the predictor variable.
+As a first basic analysis, we will run a logistic regression with nitrogen fixation as the response variable, and absolute median latitude as the predictor variable.
 
 ```{r log_reg, dev='svg'}
 library(ggplot2)
 leg_mod <- glm(fixer~abs(median_lat)*median_long, data = legume_dat, family = binomial())
 summary(leg_mod)
+```
+
+The model suggests a positive relationship between absolute median latitude and the probability that a species will fix nitrogen within the legumes. It also suggests that the relationship varies by longitude such that the further East we go, the stronger the latitudinal effect. This could be caused by the fact that we have few data points for China and Russia, and so the Eastern side of the analysis will be dominated by the equator through Australia to New Zealand effect, whereas in the West, the relationship will be more indicative of equator through North America to Alaska, and the equator through Europe effects (because we have tons of points in Europe and North America. Let's plot the relationship by latitude:
+
+```{r plot_it}
+##Plot it!
 p <- ggplot(legume_dat, aes(median_lat, fixer)) + geom_point(alpha=0.25, position = position_jitter(width = 0, height = 0.1)) + stat_smooth(color = "black", size = 1.0) + theme_bw()
 p
 ```
 
-At least in this preliminary analysis, it appears that there is indeed a fairly strong pattern of nitrogen fixation with latitude. There are several issues we need to try and account for to make sure this is robust, of course. One is dealing with error in the database (this analysis uses the whole database not just the part that has been corrected). Another is the issue of introduced species. GBIF makes not distinction between native or introduced. We are hoping we can deal with this by looking at the native vs. introduced status of legume species as recorded in the ILDIS database.
+There is a prominant dip in nitrogen fixation at the equator (down to about 70% nitrogen fixation), and a gradual increase towards the two poles. After about to 40 degrees latitude or so, all legumes are fixers. Frankly we were surprised by how smooth and symmetrical the relationship is, despite large variation in sample size across the latitudinal gradient.  
 
+At least in this preliminary analysis, it appears that there is indeed a fairly strong pattern of nitrogen fixation with latitude. There are several issues we need to try and account for to make sure this is robust, of course. One is dealing with error in the database (this analysis uses the whole database not just the part that has been corrected). Another is the issue of introduced species. GBIF makes not distinction between native or introduced. We are hoping we can deal with this by looking at the native vs. introduced status of legume species as recorded in the ILDIS database. In most cases, we would imagine that introduced species' latitudinal range will be fairly similar to their latitudinal range in their native region, at least with respect to the entire globe, and so hopefully this factor won't lead to much of a bias in the results.
+
+The next step will be to create a global map of proportional nitrogen fixation, so we can see any other geographic patterns that emerge.
