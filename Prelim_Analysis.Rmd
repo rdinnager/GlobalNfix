@@ -43,7 +43,7 @@ legume_dat
 
 As a first basic analysis, we will run a logistic regression with nitrogen fixation as the response variable, and absolute median latitude as the predictor variable.
 
-```{r log_reg, dev='svg'}
+```{r log_reg}
 library(ggplot2)
 leg_mod <- glm(fixer~abs(median_lat)*median_long, data = legume_dat, family = binomial())
 summary(leg_mod)
@@ -51,7 +51,7 @@ summary(leg_mod)
 
 The model suggests a positive relationship between absolute median latitude and the probability that a species will fix nitrogen within the legumes. It also suggests that the relationship varies by longitude such that the further East we go, the stronger the latitudinal effect. This could be caused by the fact that we have few data points for China and Russia, and so the Eastern side of the analysis will be dominated by the equator through Australia to New Zealand effect, whereas in the West, the relationship will be more indicative of equator through North America to Alaska, and the equator through Europe effects (because we have tons of points in Europe and North America. Let's plot the relationship by latitude:
 
-```{r plot_it}
+```{r plot_it, dev='svg'}
 ##Plot it!
 p <- ggplot(legume_dat, aes(median_lat, fixer)) + geom_point(alpha=0.25, position = position_jitter(width = 0, height = 0.1)) + stat_smooth(color = "black", size = 1.0) + theme_bw()
 p
