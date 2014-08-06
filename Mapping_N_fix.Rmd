@@ -1,0 +1,42 @@
+---
+title: "Mapping Nitrogen Fixation Gloablly"
+author: "Russell Dinnage and Anna Simonsen"
+date: "06/08/2014"
+output: html_document
+---
+
+In this document, we will create a global map, with gridded values representing the proportion of occurring legume species that are nitrogen fixing. First we load the global occurrence data and then create a an overlaying grid, which we can use to aggregate the occurrence data over. Here, we use a mixture of spatial analysis functions from the `sp` package and data.frame manipulation functions of `dply` (to speed up calculations).
+
+```{r grid_it}
+library(GlobalNfix)
+library(sp)
+library(maps)
+library(spatstat)
+library(maptools)
+library(ggplot2)
+library(dplyr)
+library(magrittr)
+data(full_legume_data)
+## convert to spatial object
+## create grid of 5 degrees across globe (we can try other grid sizes as well)
+grid <- GridTopology(c(-87.5, -177.5), c(5, 5), c(36, 72))
+sp_grid <- coordinates(grid) 
+sp_grid <- sp_grid %>% 
+  data.frame %>% 
+  set_names(c("lat_centre", "long_centre")) %>% 
+  mutate(grid_id = seq_len(nrow(sp_grid)))
+## assign points to grid
+sp_grid_assign <- getGridIndex(cc = full_legume_data %>% 
+                                   select(decimalLatitude, decimalLongitude) %>%
+                                   data.frame,
+                                 grid = grid, all.inside = FALSE)
+legume_grid <- full_legume_data %>%
+  mutate(grid_id = sp_grid_assign) %>%
+  left_join(sp_grid)
+```
+
+Now that we have that, we can use `dplyr` to calculate the proportion of nitrogen fixing and non-fixing legumes in each grid-cell. We will role up the above into a function as part of this package so we can easily recalculate for different grid-cell sizes.
+
+```{r map_fixation}
+
+```
