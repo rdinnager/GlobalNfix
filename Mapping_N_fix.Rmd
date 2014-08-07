@@ -1,9 +1,26 @@
 ---
-title: "Mapping Nitrogen Fixation Gloablly"
+title: "Mapping Nitrogen Fixation Globally"
 author: "Russell Dinnage and Anna Simonsen"
 date: "06/08/2014"
 output: html_document
 ---
+
+```{r knitr_init, echo=FALSE, results="asis", cache=FALSE}
+library(knitr)
+
+## Global options
+options(max.print="75")
+opts_chunk$set(fig.path="out/",
+               echo=TRUE,
+         cache=TRUE,
+               cache.path="cache/",
+               prompt=FALSE,
+               tidy=TRUE,
+               comment=NA,
+               message=FALSE,
+               warning=FALSE)
+opts_knit$set(width=75)
+```
 
 In this document, we will create a global map, with gridded values representing the proportion of occurring legume species that are nitrogen fixing. First we load the global occurrence data and then create a an overlaying grid, which we can use to aggregate the occurrence data over. Here, we use a mixture of spatial analysis functions from the `sp` package and data.frame manipulation functions of `dply` (to speed up calculations).
 
@@ -35,8 +52,47 @@ legume_grid <- full_legume_data %>%
   left_join(sp_grid)
 ```
 
-Now that we have that, we can use `dplyr` to calculate the proportion of nitrogen fixing and non-fixing legumes in each grid-cell. We will role up the above into a function as part of this package so we can easily recalculate for different grid-cell sizes.
+Now that we have that, we can use `dplyr` to calculate the proportion of nitrogen fixing and non-fixing legumes in each grid-cell. We will role up the above into a function as part of this package so we can easily recalculate for different grid-cell sizes. In the mean-time, let's use `dplyr` to calculate the proportion of fixing legume species in each grid-cell.
 
 ```{r map_fixation}
+fix_prop_grid <- legume_grid %>%
+  mutate(fixing = ifelse(Data_fixing == "Yes", 1, 0)) %>% 
+  group_by(grid_id, Species) %>%
+  summarise(fix_species = mean(fixing)) %>%
+  group_by(grid_id) %>%
+  summarise(fix_species = sum(fix_species), tot_species = n()) %>%
+  mutate(prop_fix = fix_species / tot_species)
+fix_prop_grid
+```
+
+Next, we generate polygons for each grid-cell and assign the nitrogen fixing proportion to the appropriate polygon. Then we can plot with `ggplot2`.
+
+```{r draw_map, fig.width=9}
+## make polygons
+grid_poly <- fortify(as.SpatialPolygons.GridTopology(grid)) %>%
+  select(long = lat, lat = long, order, group) %>%
+  mutate(grid_id = group)
+levels(grid_poly$grid_id) <- levels(grid_poly$grid_id) %>% seq_along
+grid_poly <- grid_poly %>% mutate(grid_id = grid_id %>% as.character %>% as.integer)
+## check the grid
+p <- ggplot(grid_poly, aes(x = long, y = lat, group = grid_id)) + geom_path()
+p
+
+fix_prop_grid <- grid_poly %>% inner_join(fix_prop_grid)
+world_map <- map_data("world")
+library(scales)
+p <- ggplot(fix_prop_grid, aes(x = long, y = lat, group = grid_id)) +
+  geom_polygon(data = world_map, aes(x = long, y = lat, group = group), size = 0, fill = "grey50") +
+  geom_polygon(aes(fill = prop_fix)) +
+  geom_path(data = world_map, aes(x = long, y = lat, group = group), colour = "black") +
+  theme(panel.background = element_rect(fill="black")) +
+  scale_fill_gradient2(low = muted("red"), mid = "white", high = muted("blue"), midpoint = 0.5,
+    space = "rgb", na.value = "grey50", guide = "colourbar")
+p
+```
+
+For the above figure it would be good to mask out the areas in the ocean. And find a better projection too.
+
+```{r mask_ocean}
 
 ```
