@@ -28,8 +28,9 @@ In this document, we will create a global map, with gridded values representing 
 library(GlobalNfix)
 library(sp)
 library(maps)
-library(spatstat)
+library(mapdata)
 library(maptools)
+library(rgdal)
 library(ggplot2)
 library(dplyr)
 library(magrittr)
@@ -79,7 +80,7 @@ p <- ggplot(grid_poly, aes(x = long, y = lat, group = grid_id)) + geom_path()
 p
 
 fix_prop_grid <- grid_poly %>% inner_join(fix_prop_grid)
-world_map <- map_data("world")
+world_map <- map_data("worldHires")
 library(scales)
 p <- ggplot(fix_prop_grid, aes(x = long, y = lat, group = grid_id)) +
   geom_polygon(data = world_map, aes(x = long, y = lat, group = group), size = 0, fill = "grey50") +
@@ -87,12 +88,21 @@ p <- ggplot(fix_prop_grid, aes(x = long, y = lat, group = grid_id)) +
   geom_path(data = world_map, aes(x = long, y = lat, group = group), colour = "black") +
   theme(panel.background = element_rect(fill="black")) +
   scale_fill_gradient2(low = muted("red"), mid = "white", high = muted("blue"), midpoint = 0.5,
-    space = "rgb", na.value = "grey50", guide = "colourbar")
+    space = "rgb", na.value = "grey50", guide = "colourbar") + coord_equal()
 p
 ```
 
 For the above figure it would be good to mask out the areas in the ocean. And find a better projection too.
 
-```{r mask_ocean}
-
+```{r robinson, eval = FALSE}
+set_ll_warn(TRUE)
+set_ll_TOL(0.1)
+world_map_2 <- map("worldHires", plot = FALSE, fill = TRUE, xlim = c(-180, 180))
+world_poly <- map2SpatialPolygons(world_map_2, IDs=world_map_2$names, proj4string = CRS("+proj=longlat +ellps=WGS84"))
+wmap_robin <- spTransform(world_poly, CRS("+proj=robin +ellps=WGS84"))
+ggworld <- fortify(wmap_robin)
+mappy <- ggplot(ggworld, aes(long, lat, group = group)) + geom_polygon() + coord_equal()
+mappy
+mappy <- ggplot(world_poly, aes(long, lat, group = group)) + geom_polygon() + coord_equal()
+mappy
 ```
