@@ -61,4 +61,27 @@ There is a prominant dip in nitrogen fixation at the equator (down to about 70% 
 
 At least in this preliminary analysis, it appears that there is indeed a fairly strong pattern of nitrogen fixation with latitude. There are several issues we need to try and account for to make sure this is robust, of course. One is dealing with error in the database (this analysis uses the whole database not just the part that has been corrected). Another is the issue of introduced species. GBIF makes not distinction between native or introduced. We are hoping we can deal with this by looking at the native vs. introduced status of legume species as recorded in the ILDIS database. In most cases, we would imagine that introduced species' latitudinal range will be fairly similar to their latitudinal range in their native region, at least with respect to the entire globe, and so hopefully this factor won't lead to much of a bias in the results.
 
+## Error Analysis
+
+Let's have a look at how errors in the checked part of the nitrogen fixation data are distributed.
+
+```{r error_check, dev='svg'}
+error_checked <- full_legume_data %>% filter(Analysed_Werner_etal. == "Analysed")
+error_dat <- error_checked %>% 
+  mutate(fixing = ifelse(Data_fixing == "Yes", 1, 0)) %>%
+  group_by(Species) %>% 
+  summarise(median_lat = median(decimalLatitude), 
+            median_long = median(decimalLongitude), 
+            fixer = mean(fixing),
+            corrected = Data_corrected[1])
+corrected_dat <- error_dat %>% filter(corrected == "Data_corrected") %>% 
+  mutate(correction_direction = ifelse(fixer == 1, 1, -1))
+p <- ggplot(corrected_dat, aes(median_lat, correction_direction)) + geom_point() + stat_smooth(color = "black", size = 1.0) + theme_bw()
+p
+```
+
+In the above figure, a 1 on the y axis means a non-fixer was corrected to a fixer in the database. A -1 means a fixer was corrected to a non-fixer. Overall, there were more errors recording a non-fixer as a fixer. This suggests that in the full database, non-fixers are probably under-estimated. There does not appear to be any patterns in the error direction with latitude, meaning that our results are unlikely to be explained by errors in the database (assuming errors in the unchecked part of the database are distributed similarly to those in the checked part).
+
+There were no errors for species more than 40 degrees above or below the equator. So we can say there is an increase in the number of errors in the tropics. Since most errors were recording non-fixers as fixers, this means that the full database likely slighly under-estimates the number of non-fixers in the tropics, as compared with temperate regions. So, if anything, the pattern we detected may actually be stronger than we are able to show (e.g. our results are conservative).
+
 The next step will be to create a global map of proportional nitrogen fixation, so we can see any other geographic patterns that emerge.
