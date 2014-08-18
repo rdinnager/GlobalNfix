@@ -80,7 +80,7 @@ p <- ggplot(grid_poly, aes(x = long, y = lat, group = grid_id)) + geom_path()
 p
 
 fix_prop_grid <- grid_poly %>% inner_join(fix_prop_grid)
-world_map <- map_data("worldHires")
+world_map <- map_data("world")
 library(scales)
 p <- ggplot(fix_prop_grid, aes(x = long, y = lat, group = grid_id)) +
   geom_polygon(data = world_map, aes(x = long, y = lat, group = group), size = 0, fill = "grey50") +
@@ -92,17 +92,69 @@ p <- ggplot(fix_prop_grid, aes(x = long, y = lat, group = grid_id)) +
 p
 ```
 
-For the above figure it would be good to mask out the areas in the ocean. And find a better projection too.
+For the above figure it would be good to mask out the areas in the ocean. And find a better projection too. We will use the 'Robinson' projection. Also, we will exclude any grid-cells with fewer than 5 data points as unreliable.
 
-```{r robinson, eval = FALSE}
+```{r robinson}
 set_ll_warn(TRUE)
-set_ll_TOL(0.1)
-world_map_2 <- map("worldHires", plot = FALSE, fill = TRUE, xlim = c(-180, 180))
-world_poly <- map2SpatialPolygons(world_map_2, IDs=world_map_2$names, proj4string = CRS("+proj=longlat +ellps=WGS84"))
-wmap_robin <- spTransform(world_poly, CRS("+proj=robin +ellps=WGS84"))
-ggworld <- fortify(wmap_robin)
-mappy <- ggplot(ggworld, aes(long, lat, group = group)) + geom_polygon() + coord_equal()
-mappy
-mappy <- ggplot(world_poly, aes(long, lat, group = group)) + geom_polygon() + coord_equal()
-mappy
+robin_grid <- SpatialPoints(fix_prop_grid %>% select(long, lat), CRS("+proj=longlat +ellps=WGS84")) %>% spTransform(CRS("+proj=robin +ellps=WGS84")) %>% coordinates
+fix_prop_grid <- fix_prop_grid %>% mutate(long_robin = robin_grid[ , 1], lat_robin = robin_grid[ , 2], 
+                                          rel_fix = ifelse(tot_species < 5, NA, prop_fix)) 
+## load Natural Earth map data
+world_map <- readOGR(dsn = "/home/annarussell/GeoData/Natural_Earth/50m", layer = "ne_50m_land")
+ocean_poly <- readOGR(dsn = "/home/annarussell/GeoData/Natural_Earth/50m", layer = "ne_50m_ocean")
+grats <- readOGR(dsn = "/home/annarussell/GeoData/Natural_Earth/50m", layer = "ne_50m_graticules_20")
+wmap_df_robin <- spTransform(world_map, CRS("+proj=robin")) %>% fortify
+ocean_df_robin <- spTransform(ocean_poly, CRS("+proj=robin")) %>% fortify
+grats_df_robin <- spTransform(grats, CRS("+proj=robin")) %>% fortify
+
+## convert grid-cells back to SpatialPolygons
+grid_polys <- fix_prop_grid %>% group_by(grid_id) %>% 
+  do(poly = Polygon(as.matrix(select(., long, lat)))) %>%
+  do(polys = Polygons(list(.$poly), .$grid_id))
+
+sp_grid_polys <- SpatialPolygons(grid_polys$poly, proj4string = CRS("+proj=longlat"))
+
+## calculate intersection
+library(rgeos)
+library(tidyr)
+sp_intersect <- gIntersection(sp_grid_polys, world_map, byid = TRUE)
+new_grid <- spTransform(sp_intersect, CRS("+proj=robin")) %>% fortify %>%
+  separate(id, c("grid_id", "poly2"), " ", convert = TRUE) %>% 
+  left_join(fix_prop_grid %>% select(grid_id, rel_fix))
+```
+
+Now to plot the new map!
+
+```{r robinson_map, fig.width=10}
+theme_opts <- list(theme(panel.grid.minor = element_blank(),
+                        panel.grid.major = element_blank(),
+                        panel.background = element_blank(),
+                        plot.background = element_rect(fill="grey80"),
+                        panel.border = element_blank(),
+                        axis.line = element_blank(),
+                        axis.text.x = element_blank(),
+                        axis.text.y = element_blank(),
+                        axis.ticks = element_blank(),
+                        axis.title.x = element_blank(),
+                        axis.title.y = element_blank(),
+                        plot.title = element_text(size=22)))
+
+p <- ggplot(new_grid, aes(x = long, y = lat, group = group)) +
+  geom_polygon(data = ocean_df_robin, aes(long, lat, group = group), fill = "#0066CC") +
+  geom_path(data = grats_df_robin, aes(long, lat, group = group), colour = "white") +
+  geom_polygon(data = wmap_df_robin, aes(x = long, y = lat, group = group), size = 0, fill = "grey20") +
+  geom_polygon(aes(fill = rel_fix)) +
+  geom_path(data = wmap_df_robin, aes(x = long, y = lat, group = group), colour = "black", size = 0.2) +
+  theme_opts +
+  scale_fill_gradient(low = "white", high = "darkgreen", na.value = NA, name = "Proportion of\nNitrogen-fixing\nLegume Species") +
+  coord_equal()
+p
+```
+
+Let's make a large high-res map:
+
+```{r high_res}
+pdf(file = "Maps/NfixMap_Global.pdf", width = 30, height = 20)
+p
+dev.off()
 ```
