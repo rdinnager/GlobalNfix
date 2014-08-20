@@ -99,4 +99,10 @@ for (i in legume_species) {
 }
 ```
 
+Okay, now that that is done, we can go through the `.html` files one by one and extract their distribution data.
+
+```{r extract_dist_data}
+
+```
+
 ##References
