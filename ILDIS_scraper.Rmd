@@ -102,7 +102,80 @@ for (i in legume_species) {
 Okay, now that that is done, we can go through the `.html` files one by one and extract their distribution data.
 
 ```{r extract_dist_data}
+html_path <- "/home/annarussell/Data/GlobalNfix/ILDIS_html"
+html_files <- list.files(html_path, full.names = TRUE)
+extract_regions <- function(html_file) {
+  spec_html <- readLines(html_file)
+  geo_recs <- grep("Geographical records", spec_html, fixed = TRUE) + 1
+  clean_recs <- gsub("<sup>.*?</sup>", "", spec_html[geo_recs])
+  clean_recs <- gsub("<p>", "\n", clean_recs, fixed = TRUE)
+  clean_recs <- gsub("*", "", clean_recs, fixed = TRUE)
+  clean_recs <- gsub("<.*?>", "", clean_recs) ## remove html tags
+  clean_recs <- gsub("&.*?;", "", clean_recs) ## remove special html characters
+  clean_recs <- gsub("(N = native, I = introduced, U = uncertain status)\n", "", clean_recs, fixed= TRUE)
+  clean_recs  
+}
+regions <- sapply(html_files, extract_regions)
+regions[1:10]
+```
 
+Now we just have to reformat these strings into some usable data. First we will split each string by newline characters, then separate the large regions (ending with a colon) from the sub-regions. Then we can extract the native vs. introduced designation. we will use _Abarema barbouriana_ as a test case.
+
+```{r extract_data}
+test_case <- gsub(", +", ",", regions[[2]])
+test_case <- gsub(": +", ":", test_case)
+test_case
+test_reg <- strsplit(test_case, "\n", fixed = TRUE)
+test_reg
+test_reg <- strsplit(test_reg[[1]], ":", fixed = TRUE)
+test_reg
+test_reg <- lapply(test_reg, function(x) cbind(x[1], strsplit(x[2], ",", fixed = TRUE)[[1]]))
+test_reg
+test_reg <- do.call(rbind, test_reg)
+colnames(test_reg) <- c("Region", "Subregion")
+test_reg <- data.frame(test_reg, stringsAsFactors = FALSE)
+test_reg$Subregion[is.na(test_reg$Subregion)] <- test_reg$Region[is.na(test_reg$Subregion)] 
+find <- regexpr("\\((.+)\\)", test_reg$Subregion)
+test_reg$Status <- NA
+test_reg$Status[find != -1] <- gsub("\\(|\\)", "", regmatches(test_reg$Subregion, find))
+test_reg$Subregion <- gsub("\\((.+)\\)", "", test_reg$Subregion)
+test_reg
+```
+
+Let's put that into a function and get it done for all of the legume species.
+
+```{r reg_func}
+grab_dist_data <- function(region){
+  test_case <- gsub(", +", ",", region)
+  test_case <- gsub(": +", ":", test_case)
+  test_reg <- strsplit(test_case, "\n", fixed = TRUE)
+  test_reg <- strsplit(test_reg[[1]], ":", fixed = TRUE)
+  test_reg <- lapply(test_reg, function(x) cbind(x[1], strsplit(x[2], ",", fixed = TRUE)[[1]]))
+  test_reg <- do.call(rbind, test_reg)
+  colnames(test_reg) <- c("Region", "Subregion")
+  test_reg <- data.frame(test_reg, stringsAsFactors = FALSE)
+  test_reg$Subregion[is.na(test_reg$Subregion)] <- test_reg$Region[is.na(test_reg$Subregion)] 
+  find <- regexpr("\\((.+)\\)", test_reg$Subregion)
+  test_reg$Status <- NA
+  test_reg$Status[find != -1] <- gsub("\\(|\\)", "", regmatches(test_reg$Subregion, find))
+  test_reg$Subregion <- gsub("\\((.+)\\)", "", test_reg$Subregion)
+  test_reg
+}
+total_regions <- list()
+spec_name <- gsub(".html", "", regmatches(names(regions), regexpr("[^//]+$", names(regions))))
+for (i in 1:length(regions)) {
+  reg_dat <- grab_dist_data(regions[i])
+  reg_dat$Species <- spec_name[i]
+  total_regions[[i]] <- reg_dat
+}
+total_regions <- do.call(rbind, total_regions)
+head(total_regions, 50)
+```
+
+Lastly, we save the data tot he `data` directory for later use.
+
+```{r save_data}
+save(total_regions, file = "data/total_regions.rda")
 ```
 
 ##References
