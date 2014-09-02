@@ -84,4 +84,10 @@ In the above figure, a 1 on the y axis means a non-fixer was corrected to a fixe
 
 There were no errors for species more than 40 degrees above or below the equator. So we can say there is an increase in the number of errors in the tropics. Since most errors were recording non-fixers as fixers, this means that the full database likely slighly under-estimates the number of non-fixers in the tropics, as compared with temperate regions. So, if anything, the pattern we detected may actually be stronger than we are able to show (e.g. our results are conservative).
 
+##Phylogenetic analysis
+
+Now, we will see if the latitudinal regression holds when we control for phylogeny. If the effect goes away, it implies that the effect is largely driven by radiations of non-nitrogen-fixing in the tropics (since we assume that the legume common ancestor was nitrogen-fixing). This mean it could be because lineages which happened to not fix nitrogen were successful for some other reason, and the diversification of these clades dragged the nitrogen non-fixing trait along (non-adaptive explanation). Or it could be those lineages diversified because they were non-fixing (adaptive explanation). It would be difficult to distinguish these two hypotheses in this case.   
+
+##Woody vs. Non-woody Legumes
+
 The next step will be to create a global map of proportional nitrogen fixation, so we can see any other geographic patterns that emerge.
