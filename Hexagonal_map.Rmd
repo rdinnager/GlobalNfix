@@ -1,0 +1,133 @@
+---
+title: "Hexagonal Cell Map"
+author: "Russell Dinnage and Anna Simonsen"
+date: "01/09/2014"
+output: html_document
+---
+
+```{r knitr_init, echo=FALSE, results="asis", cache=FALSE}
+library(knitr)
+
+## Global options
+options(max.print="75")
+opts_chunk$set(fig.path="out/",
+               echo=TRUE,
+         cache=TRUE,
+               cache.path="hexcache/",
+               prompt=FALSE,
+               tidy=TRUE,
+               comment=NA,
+               message=FALSE,
+               warning=FALSE,
+         autodep = TRUE)
+opts_knit$set(width=75)
+```
+
+Here we are going to make a map just like the one we've already made, showing the distribution of nitrogen fixation in Legumes world-wide, but instead we are going to try and use hexagonal cells instead of square ones. Then we will see which one looks better (and potentially which on is more informative). First we will load the data and the maps.
+
+```{r load_maps}
+library(GlobalNfix)
+library(sp)
+library(maps)
+library(mapdata)
+library(maptools)
+library(rgdal)
+library(rgeos)
+library(ggplot2)
+library(dplyr)
+library(magrittr)
+data(full_legume_data)
+set_ll_warn(TRUE)
+
+world_map <- readOGR(dsn = "/home/annarussell/GeoData/Natural_Earth/50m", layer = "ne_50m_land")
+ocean_poly <- readOGR(dsn = "/home/annarussell/GeoData/Natural_Earth/50m", layer = "ne_50m_ocean")
+grats <- readOGR(dsn = "/home/annarussell/GeoData/Natural_Earth/50m", layer = "ne_50m_graticules_20")
+bbox <- readOGR(dsn = "/home/annarussell/GeoData/Natural_Earth/50m", layer = "ne_50m_wgs84_bounding_box") %>% spTransform(CRS("+proj=robin"))
+wmap_df_robin <- spTransform(world_map, CRS("+proj=robin")) %>% fortify
+ocean_df_robin <- spTransform(ocean_poly, CRS("+proj=robin")) %>% fortify
+grats_df_robin <- spTransform(grats, CRS("+proj=robin")) %>% fortify
+
+
+hpts <- spsample(bbox, type = "hexagonal", cellsize = 283411)
+hpols <- HexPoints2SpatialPolygons(hpts) 
+plot(hpols)
+
+## make legume data into spatial point data
+legume_sp <- SpatialPoints(full_legume_data %>% select(decimalLongitude, decimalLatitude) %>% as.matrix, CRS(proj4string(world_map))) %>% spTransform(CRS("+proj=robin"))
+
+## find which hexagons each point falls in
+legume_hex <- over(legume_sp, hpols)
+full_legume_data <- full_legume_data %>% mutate(hexID = legume_hex)
+```
+
+Now to calculate the proportion of legume species that fix nitrogen within each hexagon, and then create a data frame we can plot with `ggplot2`.
+
+```{r fix_hex}
+fix_prop_grid <- full_legume_data %>%
+  mutate(fixing = ifelse(Data_fixing == "Yes", 1, 0)) %>% 
+  group_by(hexID, Species) %>%
+  summarise(fix_species = mean(fixing)) %>%
+  group_by(hexID) %>%
+  summarise(fix_species = sum(fix_species), tot_species = n()) %>%
+  mutate(prop_fix = fix_species / tot_species)
+fix_prop_grid
+hex_pol_df <- fortify(hpols) %>% 
+  select(long, lat, order, group) %>%
+  mutate(hexID = group)
+levels(hex_pol_df$hexID) <- levels(hex_pol_df$hexID) %>% seq_along
+hex_pol_df <- hex_pol_df %>% mutate(hexID = hexID %>% as.character %>% as.integer)
+p <- ggplot(hex_pol_df, aes(x = long, y = lat, group = hexID)) + geom_path() + coord_equal()
+p
+fix_prop_grid <- hex_pol_df %>% inner_join(fix_prop_grid)
+library(scales)
+p <- ggplot(fix_prop_grid, aes(x = long, y = lat, group = hexID)) +
+  geom_polygon(data = wmap_df_robin, aes(x = long, y = lat, group = group), size = 0, fill = "grey50") +
+  geom_polygon(aes(fill = prop_fix)) +
+  geom_path(data = wmap_df_robin, aes(x = long, y = lat, group = group), colour = "black") +
+  theme(panel.background = element_rect(fill="black")) +
+  scale_fill_gradient2(low = muted("red"), mid = "white", high = muted("blue"), midpoint = 0.5,
+    space = "rgb", na.value = "grey50", guide = "colourbar") + coord_equal()
+p
+```
+
+Now a nicer cleaned up version with better colours.
+
+```{r better_map, fig.width=10}
+library(tidyr)
+fix_prop_grid <- fix_prop_grid %>% mutate(rel_fix = ifelse(tot_species < 5, NA, prop_fix)) 
+grid_polys <- fix_prop_grid %>% group_by(hexID) %>% 
+  do(poly = Polygon(as.matrix(select(., long, lat)))) %>%
+  do(polys = Polygons(list(.$poly), .$hexID))
+
+world_map_robin <- spTransform(world_map, CRS("+proj=robin")) %>% gBuffer(byid = TRUE)
+sp_grid_polys <- SpatialPolygons(grid_polys$poly, proj4string = CRS(proj4string(world_map_robin)))
+
+sp_intersect <- gIntersection(sp_grid_polys, world_map_robin, byid = TRUE)
+new_grid <- sp_intersect %>% fortify %>%
+  separate(id, c("hexID", "poly2"), " ", convert = TRUE) %>% 
+  left_join(fix_prop_grid %>% select(hexID, rel_fix))
+
+theme_opts <- list(theme(panel.grid.minor = element_blank(),
+                        panel.grid.major = element_blank(),
+                        panel.background = element_blank(),
+                        plot.background = element_rect(fill="grey80"),
+                        panel.border = element_blank(),
+                        axis.line = element_blank(),
+                        axis.text.x = element_blank(),
+                        axis.text.y = element_blank(),
+                        axis.ticks = element_blank(),
+                        axis.title.x = element_blank(),
+                        axis.title.y = element_blank(),
+                        plot.title = element_text(size=22)))
+
+p <- ggplot(new_grid, aes(x = long, y = lat, group = group)) +
+  geom_polygon(data = ocean_df_robin, aes(long, lat, group = group), fill = "#0066CC") +
+  geom_path(data = grats_df_robin, aes(long, lat, group = group), colour = "white") +
+  geom_polygon(data = wmap_df_robin, aes(x = long, y = lat, group = group), size = 0, fill = "grey20") +
+  geom_polygon(aes(fill = rel_fix)) +
+  geom_path(data = wmap_df_robin, aes(x = long, y = lat, group = group), colour = "black", size = 0.2) +
+  theme_opts +
+  scale_fill_gradient(low = "white", high = "darkgreen", na.value = NA, name = "Proportion of\nNitrogen-fixing\nLegume Species") +
+  coord_equal()
+p
+```
