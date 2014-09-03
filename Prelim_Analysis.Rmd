@@ -45,7 +45,7 @@ As a first basic analysis, we will run a logistic regression with nitrogen fixat
 
 ```{r log_reg}
 library(ggplot2)
-leg_mod <- glm(fixer~abs(median_lat)*median_long, data = legume_dat, family = binomial())
+leg_mod <- glm(fixer~scale(abs(median_lat), scale = FALSE)*median_long, data = legume_dat, family = binomial())
 summary(leg_mod)
 ```
 
@@ -86,7 +86,37 @@ There were no errors for species more than 40 degrees above or below the equator
 
 ##Phylogenetic analysis
 
-Now, we will see if the latitudinal regression holds when we control for phylogeny. If the effect goes away, it implies that the effect is largely driven by radiations of non-nitrogen-fixing in the tropics (since we assume that the legume common ancestor was nitrogen-fixing). This mean it could be because lineages which happened to not fix nitrogen were successful for some other reason, and the diversification of these clades dragged the nitrogen non-fixing trait along (non-adaptive explanation). Or it could be those lineages diversified because they were non-fixing (adaptive explanation). It would be difficult to distinguish these two hypotheses in this case.   
+Now, we will see if the latitudinal regression holds when we control for phylogeny. If the effect goes away, it implies that the effect is largely driven by radiations of non-nitrogen-fixing in the tropics (since we assume that the legume common ancestor was nitrogen-fixing). This mean it could be because lineages which happened to not fix nitrogen were successful for some other reason, and the diversification of these clades dragged the nitrogen non-fixing trait along (non-adaptive explanation). Or it could be those lineages diversified because they were non-fixing (adaptive explanation). It would be difficult to distinguish these two hypotheses in this case.  First, let's load up the phylogeny.
+
+```{r load_phylo}
+library(ape)
+big_tree <- system.file("extdata/Vascular_Plants_rooted.dated.tre", package = "GlobalNfix") %>% read.tree
+legume_specs <- big_tree$tip.label %in% sub(" ", "_", legume_dat$Species)
+## how many legumes are in the phylogeny?
+sum(legume_specs)
+legume_tree <- drop.tip(big_tree, which(!legume_specs))
+plot(legume_tree, type = "f", cex = 0.3)
+```
+
+Now we can repeat the latitudinal logistic regression using phylogenetic logistic regression, on only the species that occur in the phylogeny. We will use the `phylolm` package to conduct the phylogenetic logistic regression (which runs the type of model described in Ives and Garland 2010).
+
+```{r phylo_reg, warning=TRUE}
+library(magrittr)
+library(phylolm)
+leg_dat <- legume_dat %>% data.frame %>%
+  set_rownames(legume_dat$Species %>% sub(" ", "_", .))
+leg_dat <- leg_dat[rownames(leg_dat) %in% legume_tree$tip.label, ]
+phy_mod <- phyloglm(fixer~abs(median_lat), data = leg_dat, phy = legume_tree, method = "MPLE", btol = 60)
+summary(phy_mod)
+#phy_mod <- phyloglm(fixer~scale(median_lat, scale = FALSE)*scale(median_long, scale = FALSE), data = #leg_dat, phy = legume_tree, method = "MPLE", btol = 100, start.alpha = 0.01)
+#summary(phy_mod)
+test_lm <- lm(fixer~abs(median_lat), data = leg_dat)
+summary(test_lm)
+phy_mod <- phylolm(fixer~abs(median_lat), data = leg_dat, phy = legume_tree)
+summary(phy_mod)
+```
+
+Well, so far I can't seem to get the phylogenetic logistic regression (`phyloglm`) model to converge. However, with a large dataset like this, a regular egression usually gives a pretty similar answer to a logistic regression (thank you central limit theorem). Using just regular regression, we can see that the latitudinal effect holds for the species that are in the phylogeny, but when we do a phylogenetic regression, the effect goes away (in fact the trend reverses, becoming slightly negative, though not significantly so).
 
 ##Woody vs. Non-woody Legumes
 
