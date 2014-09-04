@@ -18,7 +18,8 @@ opts_chunk$set(fig.path="out/",
                tidy=TRUE,
                comment=NA,
                message=FALSE,
-               warning=FALSE)
+               warning=FALSE,
+         autodep = TRUE)
 opts_knit$set(width=75)
 ```
 
@@ -32,4 +33,23 @@ library(sp)
 tdwg <- readOGR(dsn = system.file("extdata/TDWG/TDWG_4", package = "GlobalNfix"), layer = "level4")
 class(tdwg)
 plot(tdwg)
+```
+
+Next, we will load all the TDWG regions, and the regions we extracted from ILDIS, and see how weel they match up.
+
+```{r match_regions}
+data(total_regions)
+tdwg1 <- read.table(system.file("extdata/TDWG/tblLevel1.txt", package = "GlobalNfix"), sep = "*", header = TRUE, fill = TRUE, stringsAsFactors = FALSE, dec = ",", quote = "")
+tdwg2 <- read.table(system.file("extdata/TDWG/tblLevel2.txt", package = "GlobalNfix"), sep = "*", header = TRUE, fill = TRUE, stringsAsFactors = FALSE, dec = ",", quote = "")
+tdwg3 <- read.table(system.file("extdata/TDWG/tblLevel3.txt", package = "GlobalNfix"), sep = "*", header = TRUE, fill = TRUE, stringsAsFactors = FALSE, dec = ",", quote = "")
+tdwg4 <- read.table(system.file("extdata/TDWG/tblLevel4.txt", package = "GlobalNfix"), sep = "*", header = TRUE, fill = TRUE, stringsAsFactors = FALSE, dec = ",", quote = "")
+regs <- unique(total_regions$Subregion)
+tdwg <- c(tdwg1$L1.continent, tdwg2$L2.region, tdwg3$L3.area, tdwg4$L4.country)
+regs <- gsub(" Is", " Is.", regs, fixed = TRUE)
+regs <- gsub(" I$", " I.", regs)
+regs <- gsub("-F.E.", "", regs)
+reg_match <- regs %in% tdwg
+not_matched <- regs[!reg_match]
+write.csv(data.frame(Unmatched = not_matched), file = "extdata/tdwg_ildis_match.csv", row.names = FALSE)
+write.csv(data.frame(region_names = tdwg), file = "extdata/tdwg_options.csv", row.names = FALSE)
 ```
