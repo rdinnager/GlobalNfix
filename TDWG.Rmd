@@ -29,7 +29,7 @@ First let us load the shape files downloaded from http://www.kew.org/science-res
 ```{r load_shapes}
 library(rgdal)
 library(sp)
-tdwg <- readOGR(dsn = "inst/extdata/TDWG/TDWG_4", layer = "level4")
+tdwg <- readOGR(dsn = system.file("extdata/TDWG/TDWG_4", package = "GlobalNfix"), layer = "level4")
 class(tdwg)
 plot(tdwg)
 ```
