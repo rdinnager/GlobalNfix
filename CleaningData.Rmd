@@ -64,8 +64,8 @@ That is a lot of columns! `LaF` requires that you specify the type of all the co
 ```{r}
 col_type <- vector(mode= "character", length = length(frow))
 names(col_type) <- as.character(frow)
-col_need <- c("gbifID", "decimalLatitude", "decimalLongitude", "genus", "scientificName", "species", "taxonKey", "genusKey", "speciesKey")
-col_type[col_need] <- c("integer", "double", "double", "string", "string", "string", "integer", "integer", "integer")
+col_need <- c("gbifID", "decimalLatitude", "decimalLongitude", "genus", "scientificName", "species", "family", "order", "speciesKey")
+col_type[col_need] <- c("integer", "double", "double", "string", "string", "string", "string", "string", "integer")
 col_type[col_type == ""] <- "string"
 gbif_dat <- laf_open_csv("bigdata/gbif_occ.txt", column_types = col_type, column_names = as.character(frow), sep = "\t", skip = 1)
 ```
