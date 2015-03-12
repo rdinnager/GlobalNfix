@@ -8,7 +8,7 @@ output:
     fig_width: 6
     fig_height: 6
     highlight: pygments
-bibliography: "/home/din02g/Google Drive/References/GNFD.bib"
+bibliography: "E:/Projects/GlobalNfix/refs/GNFD.bib"
 ---
 
 ```{r knitr_init, echo=FALSE, results="asis", cache=FALSE}
@@ -36,9 +36,10 @@ if (!file.exists("inst/extdata/Werner_NFix.csv")){
                 "inst/extdata/Werner_NFix.csv", "curl")
 }
 N_fix_data <- read.csv("inst/extdata/Werner_NFix.csv", stringsAsFactors = FALSE)
+species <- N_fix_data$Species
 legume_species <- N_fix_data$Species[N_fix_data$Family == "Fabaceae"]
-N_fix_data <- N_fix_data[N_fix_data$Family == "Fabaceae", ] ## reduce to just legumes
-save(legume_species, file = "data/legume_species.rda")
+other_species <- N_fix_data$Species[N_fix_data$Family != "Fabaceae"]
+save(species, legume_species, other_species, file = "data/species.rda")
 write.table(N_fix_data, file = "data/N_fix_data.csv", row.names = FALSE, sep = ";")
 ```
 
@@ -46,7 +47,7 @@ It is possible to use R packages to download GBIF data from GBIF directly, but f
 
 In order to use `LaF`, the datafile must be formatted correctly. Unforunately, the raw GBIF data files usually contain quotes with fields, which is not compatible with `LaF`. I have not figured out a cross-platform solution to this problem yet, but using linux we can use basic commands to remove all single and double quotes from the data file as follows (this may take a few minutes):
 
-```{r, engine='bash'}
+```
 if [ ! -f ./data/gbif_occ.txt ]; then sed 's/\"//g' data/occurrence.txt > data/gbif_occ.txt; fi
 ```
 
@@ -78,25 +79,27 @@ gbif_dat_reduced <- gbif_dat[ , col_need]
 print(object.size(gbif_dat_reduced), units = "Mb")
 ```
 
-As a basic sanity check, let's load up some `dplyr` and `ggplot2` and see whether the data looks like it is actually data on a world map.
+As a basic sanity check, let's load up some `dplyr` and `ggplot2` and see whether the data looks like it is actually data on a world map. But first we should reduce it so that we are only plotting the species which actually occur in the Werner et al. database of nitrogen fixation.
 
 ```{r}
 library(dplyr)
 library(ggplot2)
 ## convert to a dplyr table
 gbif_dat_reduced <- gbif_dat_reduced %>% tbl_df
-gbif_dat_reduced
+red <- gbif_dat_reduced %>%
+  filter(gbif_dat_reduced$species %in% N_fix_data$Species)
+red
 ```
 
-Let's plot it and see if it looks vaguely world shaped! (this might take awhile; we are plotting 5 million points!)
+Let's plot it and see if it looks vaguely world shaped! (this might take awhile; we are plotting 11 million points!)
 
 ```{r}
-p <- ggplot(gbif_dat_reduced, aes(decimalLongitude, decimalLatitude)) + 
+p <- ggplot(red, aes(decimalLongitude, decimalLatitude)) + 
   geom_point(alpha = 0.1)
 p
 ```
 
-But, we don't actually need all of these GBIF records. AT the most we only need the records for species that are also in the @Werner2014 nitrogen fixation data. First, let's see how many of the @Werner2014 species have corresponding GBIF records.
+Let's see how many of the @Werner2014 species have corresponding GBIF records.
 
 ```{r}
 legumes_in_GBIF <- N_fix_data$Species[N_fix_data$Species %in% gbif_dat_reduced$species]
@@ -110,7 +113,7 @@ fulldat_legumes <- sum(N_fix_data$Analysed_Werner_etal.[N_fix_data$Species %in% 
 fulldat_legumes
 ```
 
-So that is only `r (fulldat_legumes/nrow(N_fix_data)*100)`%. This is still a good number. But it suggests we may want to use the whole dataset, but conduct sensitivity analyses to see how are results are changed by simulating error in different ways. This might be a good place to use a "virtual ecologist" [@Zurell2010] - style analysis, actually!
+So that is only `r (fulldat_legumes/nrow(N_fix_data))*100`%. This is still a good number. But it suggests we may want to use the whole dataset, but conduct sensitivity analyses to see how are results are changed by simulating error in different ways. This might be a good place to use a "virtual ecologist" [@Zurell2010] - style analysis, actually!
 
 Let's map out all the occurrences of species that were analysed in @Werner2014.
 
@@ -124,7 +127,7 @@ p <- p + geom_polygon(data=all_states, aes(x=long, y=lat, group = group),colour=
 p
 ```
 
-It turns out we still have about 3.75 million occurrence records for the remaining species and good latitudinal coverage. It would appear that those legumes that occur commonly in genbank records (and so appear in the phylogeny used by @Werner2014) also have good GBIF records. I suppose this makes sense.
+It turns out we still have about 10 million occurrence records for the remaining species and good latitudinal coverage. It would appear that those legumes that occur commonly in genbank records (and so appear in the phylogeny used by @Werner2014) also have good GBIF records. I suppose this makes sense.
 
 The next step will be to look for and clean-up any obvious errors in the GBIF data. For example, there are a number of records at lat-long of exactly 0. This usually mean the data is missing and the recorders put zeroes instead of missing data for the coordinates. We will get rid of these. Also any records which are not on any land-masses (we are not interested in those pesky marine legumes in this study). We should also double-check that there are not any errors in the species names (there shouldn't be).
 
@@ -137,7 +140,7 @@ gbif_legumes <- gbif_dat_reduced %>%
   filter(gbif_dat_reduced$species %in% N_fix_data$Species) %>%
   filter(decimalLatitude != 0 & decimalLongitude != 0) %>%
   select(gbifID, decimalLatitude, decimalLongitude, genus, scientificName, 
-         Species = species, taxonKey, genusKey, speciesKey)
+         Species = species, family, order, speciesKey)
 full_legume_data <- left_join(gbif_legumes, N_fix_data)
 full_legume_data %>% select(decimalLatitude, decimalLongitude, Species, Data_fixing)
 save(full_legume_data, file = "data/full_legume_data.rda")
